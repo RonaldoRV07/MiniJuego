@@ -1,251 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Busca su Pareja</title>
-<style>
-   body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: linear-gradient(135deg, #ffecd2, #fcb69f);
-      margin: 0;
-      padding: 0;
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-attachment: fixed;
-      background-position: center;
-    }
-
-  h1 {
-    margin-top: 10px;
-    color: #fff;
-    text-shadow: 2px 2px 4px #000;
-  }
-
-  .info {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    color: #fff;
-    font-size: 18px;
-    margin: 10px;
-    flex-wrap: wrap;
-  }
-
-  .game-board {
-    display: grid;
-    justify-content: center;
-    gap: 10px;
-    margin: 20px auto;
-  }
-
-  .card {
-    width: 70px;
-    height: 70px;
-    background-color: #fff;
-    border-radius: 10px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 32px;
-    cursor: pointer;
-    transition: transform 0.3s, background-color 0.3s, border 0.3s;
-  }
-
-  .card.flipped {
-    background-color: #ffd;
-    transform: rotateY(180deg);
-  }
-
-  .card.correct {
-    border: 3px solid #00ff00;
-  }
-
-  .card.wrong {
-    background-color: #ff4d4d;
-  }
-
-  .controls {
-    margin: 15px;
-  }
-
-  input[type="range"] {
-    width: 200px;
-  }
-
-  @media (max-width: 600px) {
-    .card {
-      width: 50px;
-      height: 50px;
-      font-size: 24px;
-    }
-  }
-</style>
-</head>
-<body>
-  <h1>🎯 Busca su Pareja 🎯</h1>
-
-  <div class="info">
-    <div>⏱️ Tiempo: <span id="timer">60</span>s</div>
-    <div>❤️ Vidas: <span id="lives">7</span></div>
-    <div>🔥 Nivel: <span id="level">1</span></div>
-    <div class="controls">
-      🔊 Volumen:
-      <input type="range" id="volume" min="0" max="1" step="0.01" value="0.5">
-    </div>
-  </div>
-
-  <div class="game-board" id="gameBoard"></div>
-
-  <audio id="bgMusic" loop autoplay>
-    <source src="https://cdn.pixabay.com/download/audio/2023/06/06/audio_c34e6e7b23.mp3?filename=happy-day-15620.mp3" type="audio/mpeg">
-  </audio>
-
-<script>
-const board = document.getElementById("gameBoard");
-const timerDisplay = document.getElementById("timer");
-const livesDisplay = document.getElementById("lives");
-const levelDisplay = document.getElementById("level");
-const bgMusic = document.getElementById("bgMusic");
-const volumeControl = document.getElementById("volume");
-
-let firstCard = null;
-let secondCard = null;
-let lockBoard = false;
-let lives = 7;
-let timer;
-let timeLeft = 60;
-let level = 1;
-let matchedPairs = 0;
-
-const themes = {
-  1: ["🍎","🍌","🍇","🍉"],
-  2: ["🐶","🐱","🐸","🐼","🦊","🦁"],
-  3: ["🌎","🌕","☀️","⭐","🪐","🌙","🌍","🌚"]
-};
-
-const times = { 1: 60, 2: 120, 3: 180 };
-
-volumeControl.addEventListener("input", () => {
-  bgMusic.volume = volumeControl.value;
-});
-
-// Iniciar música automáticamente
-window.addEventListener("load", () => {
-  bgMusic.play();
-  startGame();
-});
-
-function startGame() {
-  clearInterval(timer);
-  lives = 7;
-  timeLeft = times[level];
-  matchedPairs = 0;
-  livesDisplay.textContent = lives;
-  levelDisplay.textContent = level;
-  timerDisplay.textContent = timeLeft;
-  
-  createBoard();
-  startTimer();
-}
-
-function createBoard() {
-  board.innerHTML = "";
-  const symbols = themes[level];
-  const pairCount = symbols.length;
-  const cardsArray = [...symbols, ...symbols];
-  cardsArray.sort(() => 0.5 - Math.random());
-
-  let gridCols = Math.sqrt(cardsArray.length);
-  board.style.gridTemplateColumns = `repeat(${Math.ceil(gridCols)}, 80px)`;
-
-  cardsArray.forEach(symbol => {
-    const card = document.createElement("div");
-    card.classList.add("card");
-    card.dataset.symbol = symbol;
-    card.addEventListener("click", flipCard);
-    board.appendChild(card);
-  });
-}
-
-function startTimer() {
-  timer = setInterval(() => {
-    timeLeft--;
-    timerDisplay.textContent = timeLeft;
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      alert("⏰ Tiempo agotado. Inténtalo de nuevo.");
-      level = 1;
-      startGame();
-    }
-  }, 1000);
-}
-
-function flipCard() {
-  if (lockBoard || this.classList.contains("flipped")) return;
-  this.textContent = this.dataset.symbol;
-  this.classList.add("flipped");
-
-  if (!firstCard) {
-    firstCard = this;
-    return;
-  }
-
-  secondCard = this;
-  checkMatch();
-}
-
-function checkMatch() {
-  lockBoard = true;
-  if (firstCard.dataset.symbol === secondCard.dataset.symbol) {
-    firstCard.classList.add("correct");
-    secondCard.classList.add("correct");
-    matchedPairs++;
-    resetTurn();
-    if (matchedPairs === themes[level].length) nextLevel();
-  } else {
-    firstCard.classList.add("wrong");
-    secondCard.classList.add("wrong");
-    lives--;
-    livesDisplay.textContent = lives;
-    setTimeout(() => {
-      firstCard.classList.remove("flipped", "wrong");
-      secondCard.classList.remove("flipped", "wrong");
-      firstCard.textContent = "";
-      secondCard.textContent = "";
-      resetTurn();
-      if (lives <= 0) {
-        alert("💀 Te quedaste sin vidas. Inténtalo nuevamente.");
-        level = 1;
-        startGame();
-      }
-    }, 800);
-  }
-}
-
-function resetTurn() {
-  [firstCard, secondCard, lockBoard] = [null, null, false];
-}
-
-function nextLevel() {
-  clearInterval(timer);
-  if (level < 3) {
-    level++;
-    alert(`🎉 ¡Nivel ${level - 1} superado! Avanzas al nivel ${level}.`);
-    startGame();
-  } else {
-    alert("🏆 ¡Felicitaciones! Completaste todos los niveles 🎉");
-    level = 1;
-    startGame();
-  }
-}
-</script>
-</body>
-</html>
-
-
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juego de Memoria</title>
+  <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
@@ -257,3 +16,244 @@ function nextLevel() {
       background-attachment: fixed;
       background-position: center;
     }
+
+    h1 {
+      margin: 10px 0;
+    }
+
+    .info {
+      display: flex;
+      justify-content: space-around;
+      margin: 10px 0;
+      font-size: 1.2em;
+    }
+
+    .game-board {
+      display: grid;
+      gap: 10px;
+      max-width: 600px;
+      margin: 20px auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2em;
+      cursor: pointer;
+      aspect-ratio: 1/1;
+      transition: background 0.3s, border 0.3s;
+      border: 3px solid transparent;
+    }
+
+    .card.flipped {
+      background: #f0f0f0;
+      cursor: default;
+    }
+
+    .card.correct {
+      border: 3px solid green;
+      background: #e6ffe6;
+    }
+
+    .card.wrong {
+      background: #ffb3b3 !important;
+    }
+
+    #volume-control {
+      margin: 15px;
+      width: 200px;
+    }
+
+    @media (max-width: 600px) {
+      .card {
+        font-size: 1.5em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Juego de Memoria</h1>
+  <div class="info">
+    <div>⏳ Tiempo: <span id="time">60</span>s</div>
+    <div>❤️ Vidas: <span id="lives">7</span></div>
+    <div>🎯 Nivel: <span id="level">1</span></div>
+  </div>
+  <div class="game-board" id="game-board"></div>
+
+  <!-- Música -->
+  <audio id="bg-music" loop>
+    <source src="musica.mp3" type="audio/mpeg">
+    Tu navegador no soporta audio en HTML5.
+  </audio>
+  <br>
+  <label for="volume-control">🎵 Volumen: </label>
+  <input type="range" id="volume-control" min="0" max="1" step="0.01" value="0.5">
+
+  <script>
+    // Temáticas de iconos
+    const themes = [
+      ["🍎","🍌","🍇","🍉","🍒","🍍","🥭","🍓","🥝","🍑"], // Frutas
+      ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯"], // Animales
+      ["🌍","🌎","🌏","🪐","☀️","🌕","⭐","🌌","🌑","🌒"]  // Planetas
+    ];
+
+    // Configuración de niveles
+    const levels = [
+      { pairs: 4, time: 60 },   // Nivel 1: 4 pares
+      { pairs: 6, time: 120 },  // Nivel 2: 6 pares
+      { pairs: 8, time: 180 }   // Nivel 3: 8 pares
+    ];
+
+    let currentLevel = 0;
+    let lives = 7;
+    let time;
+    let timer;
+    let firstCard = null;
+    let lockBoard = false;
+
+    const board = document.getElementById("game-board");
+    const timeDisplay = document.getElementById("time");
+    const livesDisplay = document.getElementById("lives");
+    const levelDisplay = document.getElementById("level");
+
+    // Música
+    const music = document.getElementById("bg-music");
+    const volumeControl = document.getElementById("volume-control");
+
+    music.volume = 0.5;
+
+    // Reproducir música al cargar la página
+    document.addEventListener("click", () => {
+      if (music.paused) {
+        music.play();
+      }
+    }, { once: true });
+
+    volumeControl.addEventListener("input", () => {
+      music.volume = volumeControl.value;
+    });
+
+    // =========================
+    // Lógica del juego
+    // =========================
+    function startGame() {
+      board.innerHTML = "";
+      const levelConfig = levels[currentLevel];
+      const totalCards = levelConfig.pairs * 2;
+      time = levelConfig.time;
+      timeDisplay.textContent = time;
+      livesDisplay.textContent = lives;
+      levelDisplay.textContent = currentLevel + 1;
+
+      // Ajustar el grid
+      if (totalCards === 8) board.style.gridTemplateColumns = "repeat(4, 1fr)";
+      else if (totalCards === 12) board.style.gridTemplateColumns = "repeat(4, 1fr)";
+      else if (totalCards === 16) board.style.gridTemplateColumns = "repeat(4, 1fr)";
+      else board.style.gridTemplateColumns = "repeat(5, 1fr)";
+
+      // Crear cartas
+      let symbols = themes[currentLevel].slice(0, levelConfig.pairs);
+      let cardsArray = [...symbols, ...symbols];
+      cardsArray.sort(() => Math.random() - 0.5);
+
+      cardsArray.forEach(symbol => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.dataset.symbol = symbol;
+        card.addEventListener("click", flipCard);
+        board.appendChild(card);
+      });
+
+      // Iniciar temporizador
+      clearInterval(timer);
+      timer = setInterval(() => {
+        time--;
+        timeDisplay.textContent = time;
+        if (time === 0) {
+          gameOver("⏰ ¡Se acabó el tiempo!");
+        }
+      }, 1000);
+    }
+
+    function flipCard() {
+      if (lockBoard || this.classList.contains("flipped") || this.classList.contains("correct")) return;
+      this.classList.add("flipped");
+      this.textContent = this.dataset.symbol;
+
+      if (!firstCard) {
+        firstCard = this;
+        return;
+      }
+
+      if (firstCard.dataset.symbol === this.dataset.symbol) {
+        firstCard.classList.add("correct");
+        this.classList.add("correct");
+        firstCard = null;
+        checkWin();
+      } else {
+        lockBoard = true;
+        this.classList.add("wrong");
+        firstCard.classList.add("wrong");
+
+        setTimeout(() => {
+          firstCard.classList.remove("flipped", "wrong");
+          firstCard.textContent = "";
+          this.classList.remove("flipped", "wrong");
+          this.textContent = "";
+          firstCard = null;
+          lockBoard = false;
+          loseLife();
+        }, 800);
+      }
+    }
+
+    function checkWin() {
+      const flippedCards = document.querySelectorAll(".card.correct");
+      const totalCards = levels[currentLevel].pairs * 2;
+      if (flippedCards.length === totalCards) {
+        clearInterval(timer);
+        setTimeout(() => {
+          alert(`🎉 ¡Ganaste el nivel ${currentLevel + 1}!`);
+          currentLevel++;
+
+          if (currentLevel >= levels.length) {
+            alert("🏆 ¡Has completado todos los niveles!");
+            resetGame();
+          } else {
+            // 🔹 Reiniciar vidas al pasar de nivel
+            lives = 7;
+            livesDisplay.textContent = lives;
+            startGame();
+          }
+        }, 500);
+      }
+    }
+
+    function loseLife() {
+      lives--;
+      livesDisplay.textContent = lives;
+      if (lives === 0) {
+        gameOver("💀 ¡Te quedaste sin vidas!");
+      }
+    }
+
+    function gameOver(message) {
+      clearInterval(timer);
+      alert(message);
+      resetGame();
+    }
+
+    function resetGame() {
+      currentLevel = 0;
+      lives = 7;
+      startGame();
+    }
+
+    startGame();
+  </script>
+</body>
+</html>
